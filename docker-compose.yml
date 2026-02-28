@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: radius-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-radius}
+      POSTGRES_USER: ${POSTGRES_USER:-radius}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-radius_secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-radius}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - radius-net
+
+  freeradius:
+    build: .
+    container_name: freeradius-2fa
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      RADIUS_SECRET: ${RADIUS_SECRET:-changeme}
+      API_KEY: ${API_KEY:-your_api_secret_key_change_me}
+      ISSUER_NAME: ${ISSUER_NAME:-FreeRADIUS-2FA}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-radius}:${POSTGRES_PASSWORD:-radius_secret}@postgres:5432/${POSTGRES_DB:-radius}
+    ports:
+      - "1812:1812/udp"
+      - "1813:1813/udp"
+      - "8000:8000"
+    volumes:
+      - ga_secrets:/etc/freeradius/users-ga
+    networks:
+      - radius-net
+
+volumes:
+  postgres_data:
+    driver: local
+  ga_secrets:
+    driver: local
+
+networks:
+  radius-net:
+    driver: bridge
