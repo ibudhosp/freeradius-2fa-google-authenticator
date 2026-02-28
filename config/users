@@ -1,0 +1,3 @@
+# /etc/freeradius/3.0/mods-config/files/authorize
+# ใช้ PAM สำหรับ authentication ทุก user
+DEFAULT    Auth-Type := PAM
