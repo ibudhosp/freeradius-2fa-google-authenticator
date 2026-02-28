@@ -1,0 +1,4 @@
+# /etc/pam.d/radiusd
+# ใช้ Google Authenticator สำหรับ authentication
+auth    required    pam_google_authenticator.so    secret=/etc/freeradius/users-ga/${USER}/.google_authenticator    user=root
+account required    pam_permit.so
